@@ -8,17 +8,13 @@ from weasyprint import HTML, CSS
 import time
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# Configuration and setup
 st.set_page_config(page_title="Groqbook", page_icon="📚", layout="wide")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-# Initialize Groq client
 groq_client = Groq(api_key=GROQ_API_KEY)
 
-# Custom CSS for improved design
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
@@ -122,7 +118,6 @@ st.markdown("""
 </script>
 """, unsafe_allow_html=True)
 
-# Helper classes and functions
 class GenerationStatistics:
     def __init__(self, input_time=0, output_time=0, input_tokens=0, output_tokens=0, total_time=0, model_name="llama3-8b-8192"):
         self.input_time = input_time
@@ -288,16 +283,13 @@ def generate_section(prompt: str):
             statistics = GenerationStatistics(input_time=usage.prompt_time, output_time=usage.completion_time, input_tokens=usage.prompt_tokens, output_tokens=usage.completion_tokens, total_time=usage.total_time, model_name="llama3-8b-8192")
             yield statistics
 
-# Main application
 def main():
     st.title("📚 Groqbook: Write Full Books using LLaMa3 on Groq")
 
-    # Sidebar
     with st.sidebar:
         st.header("Generation Statistics")
         stats_placeholder = st.empty()
 
-    # Main content
     col1, col2 = st.columns([3, 1])
 
     with col1:
@@ -328,7 +320,6 @@ def main():
                 use_container_width=True
             )
 
-    # Book content area
     if 'book' in st.session_state:
         st.header("Generated Book Content")
         st.session_state.book.display_structure()
