@@ -81,37 +81,16 @@ st.markdown("""
         color: #f8d7da;
     }
     
-    .sidebar .sidebar-content {
-        background-color: var(--background-color);
-    }
-    
-    .sidebar .sidebar-content .block-container {
-        padding-top: 2rem;
-    }
-    
-    /* Responsive layout */
     @media (max-width: 768px) {
         .stColumn {
             flex: 1 1 100% !important;
             width: 100% !important;
         }
-        
-        .sidebar .sidebar-content {
-            padding: 1rem;
-        }
-        
-        .stButton>button {
-            margin-bottom: 1rem;
-        }
-    }
-    
-    /* Progress bar styling */
-    .stProgress > div > div > div > div {
-        background-color: #3498db;
     }
 </style>
 
 <script>
+    // JavaScript to set CSS variables based on the current theme
     const doc = window.parent.document;
     const styleEl = doc.createElement("style");
     doc.head.appendChild(styleEl);
@@ -176,6 +155,7 @@ class Book:
         self.structure = structure
         self.contents = {title: "" for title in self.flatten_structure(structure)}
         self.placeholders = {title: st.empty() for title in self.flatten_structure(structure)}
+
 
     def flatten_structure(self, structure):
         sections = []
@@ -309,13 +289,16 @@ def main():
     with st.sidebar:
         st.header("Generation Statistics")
         stats_placeholder = st.empty()
-        progress_bar = st.progress(0)
 
     col1, col2 = st.columns([3, 1])
 
     with col1:
         topic_text = st.text_area("What do you want the book to be about?", "", height=100)
-        generate_button = st.button("Generate Book", use_container_width=True)
+        if st.button("Generate Book", use_container_width=True):
+            if len(topic_text) < 10:
+                st.error("Book topic must be at least 10 characters long")
+            else:
+                generate_book(topic_text, stats_placeholder)
 
     with col2:
         if 'book' in st.session_state:
@@ -337,17 +320,11 @@ def main():
                 use_container_width=True
             )
 
-    if generate_button:
-        if len(topic_text) < 10:
-            st.error("Book topic must be at least 10 characters long")
-        else:
-            generate_book(topic_text, stats_placeholder, progress_bar)
-
     if 'book' in st.session_state:
         st.header("Generated Book Content")
         st.session_state.book.display_structure()
 
-def generate_book(topic_text, stats_placeholder, progress_bar):
+def generate_book(topic_text, stats_placeholder):
     with st.spinner("Generating book structure..."):
         structure_stats, book_structure = generate_book_structure(topic_text)
         stats_placeholder.markdown(str(structure_stats), unsafe_allow_html=True)
@@ -358,11 +335,8 @@ def generate_book(topic_text, stats_placeholder, progress_bar):
         st.session_state.book = book
 
         total_stats = GenerationStatistics(model_name="Combined")
-        total_sections = len(book.flatten_structure(book_structure_json))
-        completed_sections = 0
 
         def stream_section_content(sections):
-            nonlocal completed_sections
             for title, content in sections.items():
                 if isinstance(content, str):
                     with st.spinner(f"Generating content for: {title}"):
@@ -372,27 +346,15 @@ def generate_book(topic_text, stats_placeholder, progress_bar):
                                 total_stats.add(chunk)
                                 stats_placeholder.markdown(str(total_stats), unsafe_allow_html=True)
                             elif chunk is not None:
-st.session_state.book.update_content(title, chunk)
-                        completed_sections += 1
-                        progress = completed_sections / total_sections
-                        progress_bar.progress(progress)
+                                st.session_state.book.update_content(title, chunk)
                 elif isinstance(content, dict):
                     stream_section_content(content)
 
         stream_section_content(book_structure_json)
         st.success("Book generation completed!")
-        progress_bar.progress(1.0)
 
     except json.JSONDecodeError:
         st.error("Failed to decode the book structure. Please try again.")
-
-def display_book_outline(book_structure, level=1):
-    for title, content in book_structure.items():
-        st.markdown(f"{'#' * level} {title}")
-        if isinstance(content, dict):
-            display_book_outline(content, level + 1)
-        else:
-            st.markdown(f"*{content}*")
 
 if __name__ == "__main__":
     main()
